@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tap Records - 最先端の音楽体験</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: #333;
+            overflow-x: hidden;
+            background-color: #f0f0f0;
+        }
+        .container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ffffff, #f0f0f0);
+            position: relative;
+            overflow: hidden;
+        }
+        .background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 200%;
+            background-image: url('/placeholder.svg?height=1080&width=1920&text=modern+abstract+pattern');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.1;
+            z-index: 0;
+        }
+        header {
+            position: sticky;
+            top: 0;
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            z-index: 10;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        nav h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        nav ul {
+            display: flex;
+            list-style-type: none;
+            gap: 2rem;
+        }
+        nav a {
+            color: #333;
+            text-decoration: none;
+            transition: color 0.3s;
+            font-weight: 500;
+            position: relative;
+            cursor: pointer;
+        }
+        nav a:hover {
+            color: #007bff;
+        }
+        nav a::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background-color: #007bff;
+            transform: scaleX(0);
+            transition: transform 0.3s;
+        }
+        nav a:hover::after {
+            transform: scaleX(1);
+        }
+        main {
+            position: relative;
+            min-height: calc(100vh - 80px);
+            z-index: 1;
+        }
+        #scene-container {
+            width: 400vw;
+            height: 100%;
+        }
+        footer {
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            z-index: 10;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn-outline {
+            border: 2px solid #007bff;
+            color: #007bff;
+            background-color: transparent;
+        }
+        .btn-outline:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,123,255,0.3);
+        }
+        #now-playing {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 50px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+            align-items: center;
+            z-index: 100;
+        }
+        #now-playing img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .collection-grid, .artists-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 2rem;
+            padding: 2rem;
+        }
+        .record-card, .artist-card {
+            background-color: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .record-card:hover, .artist-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .record-image, .artist-image {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+        }
+        .record-info, .artist-info {
+            padding: 1rem;
+        }
+        .record-title, .artist-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .record-artist, .artist-genre {
+            color: #666;
+        }
+        .artist-bio {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-top: 0.5rem;
+        }
+        h2 {
+            font-size: 2.5rem;
+            margin: 2rem 0;
+            color: #007bff;
+            text-align: center;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+        @media (max-width: 768px) {
+            nav {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            nav ul {
+                margin-top: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+            .footer-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="background"></div>
+        <header>
+            <nav>
+                <h1>Tap Records</h1>
+                <ul>
+                    <li><a href="#home" data-page="home">ホーム</a></li>
+                    <li><a href="#collection" data-page="collection">コレクション</a></li>
+                    <li><a href="#artists" data-page="artists">アーティスト</a></li>
+                    <li><a href="#events" data-page="events">イベント</a></li>
+                    <li><a href="#contact" data-page="contact">お問い合わせ</a></li>
+                </ul>
+            </nav>
+        </header>
+        
+        <main>
+            <div id="home" class="page active" aria-live="polite">
+                <div id="scene-container" role="img" aria-label="3Dレコードコレクション"></div>
+            </div>
+
+            <div id="collection" class="page" aria-live="polite">
+                <h2>レコードコレクション</h2>
+                <div class="collection-grid">
+                    <div class="record-card">
+                        <img src="/placeholder.svg?height=250&width=250&text=Be+Alone" alt="Be Alone" class="record-image">
+                        <div class="record-info">
+                            <div class="record-title">Be Alone</div>
+                            <div class="record-artist">Blxst</div>
+                        </div>
+                    </div>
+                    <div class="record-card">
+                        <img src="/placeholder.svg?height=250&width=250&text=Devastated" alt="Devastated" class="record-image">
+                        <div class="record-info">
+                            <div class="record-title">Devastated</div>
+                            <div class="record-artist">Joey Badass</div>
+                        </div>
+                    </div>
+                    <div class="record-card">
+                        <img src="/placeholder.svg?height=250&width=250&text=Urban+Beats" alt="Urban Beats" class="record-image">
+                        <div class="record-info">
+                            <div class="record-title">Urban Beats</div>
+                            <div class="record-artist">Mike Johnson</div>
+                        </div>
+                    </div>
+                    <div class="record-card">
+                        <img src="/placeholder.svg?height=250&width=250&text=Classic+Vibes" alt="Classic Vibes" class="record-image">
+                        <div class="record-info">
+                            <div class="record-title">Classic Vibes</div>
+                            <div class="record-artist">Sarah Williams</div>
+                        </div>
+                    </div>
+                    <div class="record-card">
+                        <img src="/placeholder.svg?height=250&width=250&text=Future+Sound" alt="Future Sound" class="record-image">
+                        <div class="record-info">
+                            <div class="record-title">Future Sound</div>
+                            <div class="record-artist">Tom Brown</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="artists" class="page" aria-live="polite">
+                <h2>アーティスト</h2>
+                <div class="artists-grid">
+                    <div class="artist-card">
+                        <img src="/placeholder.svg?height=300&width=300&text=Blxst" alt="Blxst" class="artist-image">
+                        <div class="artist-info">
+                            <div class="artist-name">Blxst</div>
+                            <div class="artist-genre">R&B, Hip-Hop</div>
+                            <p class="artist-bio">ロサンゼルス出身のシンガー、ラッパー、プロデューサー。独特のメロディと魅力的な歌詞で注目を集めている。</p>
+                        </div>
+                    </div>
+                    <div class="artist-card">
+                        <img src="/placeholder.svg?height=300&width=300&text=Joey+Badass" alt="Joey Badass" class="artist-image">
+                        <div class="artist-info">
+                            <div class="artist-name">Joey Badass</div>
+                            <div class="artist-genre">Hip-Hop, Rap</div>
+                            <p class="artist-bio">ブルックリン出身のラッパー、俳優。90年代のヒップホップを彷彿とさせるスタイルと現代的なサウンドを融合させている。</p>
+                        </div>
+                    </div>
+                    <div class="artist-card">
+                        <img src="/placeholder.svg?height=300&width=300&text=Mike+Johnson" alt="Mike Johnson" class="artist-image">
+                        <div class="artist-info">
+                            <div class="artist-name">Mike Johnson</div>
+                            <div class="artist-genre">Electronic, Dance</div>
+                            <p class="artist-bio">シカゴを拠点とするDJ兼プロデューサー。革新的なビートと洗練されたサウンドデザインで知られる。</p>
+                        </div>
+                    </div>
+                    <div class="artist-card">
+                        <img src="/placeholder.svg?height=300&width=300&text=Sarah+Williams" alt="Sarah Williams" class="artist-image">
+                        <div class="artist-info">
+                            <div class="artist-name">Sarah Williams</div>
+                            <div class="artist-genre">Jazz, Soul</div>
+                            <p class="artist-bio">ニューオーリンズ出身のジャズシンガー。豊かな声量と感情豊かな表現で聴衆を魅了する。</p>
+                        </div>
+                    </div>
+                    <div class="artist-card">
+                        <img src="/placeholder.svg?height=300&width=300&text=Tom+Brown" alt="Tom Brown" class="artist-image">
+                        <div class="artist-info">
+                            <div class="artist-name">Tom Brown</div>
+                            <div class="artist-genre">Indie Rock, Alternative</div>
+                            <p class="artist-bio">ロンドン出身のシンガーソングライター。独特の歌声とポエティックな歌詞で独自の世界観を作り出している。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="events" class="page" aria-live="polite">
+                <h2>イベント</h2>
+                <p style="text-align: center;">近日公開予定</p>
+            </div>
+
+            <div id="contact" class="page" aria-live="polite">
+                <h2>お問い合わせ</h2>
+                <p style="text-align: center;">近日公開予定</p>
+            </div>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <p>&copy; 2023 Tap Records. 音楽の未来を創造する</p>
+                <div>
+                    <button class="btn btn-outline">全レコードを見る</button>
+                    <button class="btn btn-primary">今すぐ購入</button>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <div id="now-playing">
+        <img src="/placeholder.svg?height=40&width=40" alt="Now Playing">
+        <span>再生中: <strong id="current-track"></strong></span>
+    </div>
+
+    <script>
+        const RECORDS = [
+            { id: 1, title: "Be Alone", artist: "Blxst", color: "#1a1a1a", audio: "/path/to/be-alone.mp3" },
+            { id: 2, title: "Devastated", artist: "Joey Badass", color: "#1a1a1a", audio: "/path/to/devastated.mp3" },
+            { id: 3, title: "Urban Beats", artist: "Mike Johnson", color: "#1a1a1a", audio: "/path/to/urban-beats.mp3" },
+            { id: 4, title: "Classic Vibes", artist: "Sarah Williams", color: "#1a1a1a", audio: "/path/to/classic-vibes.mp3" },
+            { id: 5, title: "Future Sound", artist: "Tom Brown", color: "#1a1a1a", audio: "/path/to/future-sound.mp3" },
+        ];
+
+        let scene, camera, renderer, records = [], playingAudio = null;
+        let scrollProgress = 0;
+        let hovered = null;
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('scene-container').appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const spotLight = new THREE.SpotLight(0xffffff, 1);
+            spotLight.position.set(10, 10, 10);
+            spotLight.angle = 0.15;
+            spotLight.penumbra = 1;
+            scene.add(spotLight);
+
+            const pointLight = new THREE.PointLight(0xffffff, 0.5);
+            pointLight.position.set(-10, -10, -10);
+            scene.add(pointLight);
+
+            camera.position.z = 8;
+
+            createRecords();
+            animate();
+
+            window.addEventListener('resize', onWindowResize, false);
+            document.getElementById('scene-container').addEventListener('mousemove', onMouseMove, false);
+            document.getElementById('scene-container').addEventListener('click', onMouseClick, false);
+            document.getElementById('scene-container').addEventListener('scroll', onScroll, false);
+        }
+
+        function createRecords() {
+            const textureLoader = new THREE.TextureLoader();
+            const vinylNormalMap = textureLoader.load('/placeholder.svg?height=1024&width=1024&text=normal');
+            const vinylRoughnessMap = textureLoader.load('/placeholder.svg?height=1024&width=1024&text=roughness');
+            const vinylAoMap = textureLoader.load('/placeholder.svg?height=1024&width=1024&text=ao');
+            const logoTexture = textureLoader.load('https://hebbkx1anhila5yf.public.blob.vercel-storage.com/bar%20(2)-kLY4kvU4JrfvkwyMItuWwoETbcOToQ.png');
+
+            RECORDS.forEach((record, index) => {
+                const group = new THREE.Group();
+
+                const geometry = new THREE.CircleGeometry(3, 64);
+                const material = new THREE.MeshPhysicalMaterial({
+                    color: "#1a1a1a",
+                    metalness: 0.5,
+                    roughness: 0.4,
+                    normalMap: vinylNormalMap,
+                    roughnessMap: vinylRoughnessMap,
+                    aoMap: vinylAoMap,
+                    envMapIntensity: 1,
+                    clearcoat: 0.8,
+                    clearcoatRoughness: 0.2
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                group.add(mesh);
+
+                const grooveGeometry = new THREE.RingGeometry(1.2, 2.95, 180);
+                const grooveMaterial = new THREE.MeshPhysicalMaterial({
+                    color: "#232323",
+                    metalness: 0.3,
+                    roughness: 0.6,
+                    normalMap: vinylNormalMap,
+                    normalScale: new THREE.Vector2(0.2, 0.2)
+                });
+                const grooveMesh = new THREE.Mesh(grooveGeometry, grooveMaterial);
+                grooveMesh.position.z = 0.001;
+                group.add(grooveMesh);
+
+                const labelGeometry = new THREE.CircleGeometry(1.2, 32);
+                const labelMaterial = new THREE.MeshPhysicalMaterial({
+                    color: "#ffffff",
+                    metalness: 0,
+                    roughness: 0.3,
+                    clearcoat: 0.5
+                });
+                const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
+                labelMesh.position.z = 0.002;
+                group.add(labelMesh);
+
+                const logoGeometry = new THREE.CircleGeometry(1.1, 32);
+                const logoMaterial = new THREE.MeshBasicMaterial({
+                    transparent: true,
+                    map: logoTexture,
+                    alphaTest: 0.1
+                });
+                const logoMesh = new THREE.Mesh(logoGeometry, logoMaterial);
+                logoMesh.position.z = 0.003;
+                group.add(logoMesh);
+
+                const holeGeometry = new THREE.RingGeometry(0.075, 0.15, 32);
+                const holeMaterial = new THREE.MeshPhysicalMaterial({
+                    color: "#000000",
+                    metalness: 0.8,
+                    roughness: 0.2
+                });
+                const holeMesh = new THREE.Mesh(holeGeometry, holeMaterial);
+                holeMesh.position.z = 0.004;
+                group.add(holeMesh);
+
+                group.position.x = index * 9;
+                group.userData = { record, index };
+                records.push(group);
+                scene.add(group);
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = Date.now() * 0.001;
+
+            records.forEach((group, index) => {
+                group.position.y = Math.sin(time + index) * 0.05;
+                group.rotation.y = Math.sin(time * 0.5 + index) * 0.1;
+
+                const targetZ = hovered === index ? 0.5 : 0;
+                group.position.z = THREE.MathUtils.lerp(group.position.z, targetZ, 0.1);
+
+                const xPos = index * 9 - scrollProgress * 45;
+                group.position.x = xPos;
+
+                if (playingAudio === group.userData.record.audio) {
+                    group.children[0].rotation.z += 0.01;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onMouseMove(event) {
+            const mouse = new THREE.Vector2(
+                (event.clientX / window.innerWidth) * 2 - 1,
+                -(event.clientY / window.innerHeight) * 2 + 1
+            );
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+
+            const intersects = raycaster.intersectObjects(records, true);
+
+            if (intersects.length > 0) {
+                const intersectedObject = intersects[0].object;
+                const intersectedRecord = intersectedObject.parent;
+                hovered = intersectedRecord.userData.index;
+                document.body.style.cursor = 'pointer';
+            } else {
+                hovered = null;
+                document.body.style.cursor = 'default';
+            }
+        }
+
+        function onMouseClick(event) {
+            const mouse = new THREE.Vector2(
+                (event.clientX / window.innerWidth) * 2 - 1,
+                -(event.clientY / window.innerHeight) * 2 + 1
+            );
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+
+            const intersects = raycaster.intersectObjects(records, true);
+
+            if (intersects.length > 0) {
+                const intersectedObject = intersects[0].object;
+                const intersectedRecord = intersectedObject.parent;
+                const audio = intersectedRecord.userData.record.audio;
+
+                if (playingAudio === audio) {
+                    stopAudio();
+                } else {
+                    if (playingAudio) {
+                        stopAudio();
+                    }
+                    playAudio(audio, intersectedRecord.userData.record);
+                }
+            }
+        }
+
+        function onScroll(event) {
+            scrollProgress = event.target.scrollLeft / (event.target.scrollWidth - event.target.clientWidth);
+            updateBackgroundPosition();
+        }
+
+        function updateBackgroundPosition() {
+            const background = document.querySelector('.background');
+            background.style.transform = `translateY(${-scrollProgress * 100}%)`;
+        }
+
+        function playAudio(src, record) {
+            const audio = new Audio(src);
+            audio.play();
+            playingAudio = src;
+            updateNowPlaying(record);
+        }
+
+        function stopAudio() {
+            const audio = document.querySelector(`audio[src="${playingAudio}"]`);
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+            playingAudio = null;
+            hideNowPlaying();
+        }
+
+        function updateNowPlaying(record) {
+            const nowPlaying = document.getElementById('now-playing');
+            const currentTrack = document.getElementById('current-track');
+            currentTrack.textContent = `${record.title} - ${record.artist}`;
+            nowPlaying.style.display = 'flex';
+        }
+
+        function hideNowPlaying() {
+            const nowPlaying = document.getElementById('now-playing');
+            nowPlaying.style.display = 'none';
+        }
+
+        init();
+
+        // Page navigation
+        document.querySelectorAll('nav a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetPage = e.target.getAttribute('data-page');
+                document.querySelectorAll('.page').forEach(page => {
+                    page.classList.remove('active');
+                });
+                document.getElementById(targetPage).classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>
